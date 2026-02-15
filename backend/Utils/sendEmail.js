@@ -9,7 +9,7 @@ const sendEmail=async(email,token)=>{
         },
     });
     
-    const verificationLink=`${process.env.CLIENT_URL}/verify/${token}`;
+    const verificationLink=`${process.env.CLIENT_URL}/auth/verify/${token}`;
 
     await transporter.sendMail({
         from:process.env.EMAIL_USER,
