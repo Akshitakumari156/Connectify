@@ -5,9 +5,11 @@ import Signup from "./Components/SignUp";
 import Home from "./Components/Home";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import PublicRoute from "./Components/PublicRoute";
+import { Toaster } from "react-hot-toast";
 export default function App() {
   return (
     <BrowserRouter>
+     <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/welcome" replace />} />
         <Route path="/welcome" element={<Welcome />} />
