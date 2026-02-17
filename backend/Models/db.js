@@ -11,6 +11,20 @@ const UserSchema = new Schema({
   verificationToken: { type: String, default: "" }
 });
 
-const userModel = mongoose.model("User", UserSchema);
+const MessageSchema=new Schema({
+  sender:{
+    type: mongoose.Schema.Types.ObjectId,ref:"User",required:true
+  },
+  receiver:{
+    type: mongoose.Schema.Types.ObjectId,ref:"User",required:true
+  },
+  text:{
+    type:String,required:true
+  }
+},
+  {timestamps:true}
+);
 
-export default userModel;
+const userModel = mongoose.model("User", UserSchema);
+const messageModel=mongoose.model("Message",MessageSchema);
+export {userModel,messageModel};
