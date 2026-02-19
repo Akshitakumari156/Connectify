@@ -2,8 +2,7 @@ import { logout, getToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
-// 🔐 Decode userId from JWT
+
 const getMyId = () => {
   const token = getToken();
   if (!token) return null;
@@ -14,6 +13,7 @@ const getMyId = () => {
 export default function Home() {
   const navigate = useNavigate();
   const socketRef = useRef(null);
+  const selectedChatRef = useRef(null);
   const myId = getMyId();
 
   const [selectedChat, setSelectedChat] = useState(null);
@@ -25,12 +25,16 @@ export default function Home() {
   const [chats, setChats] = useState([]);
 
   const handleLogout = () => {
-    localStorage.removeItem("selectedChat");
-    localStorage.removeItem("recentChats");
+     localStorage.removeItem("selectedChat");
+    // localStorage.removeItem("recentChats");
     logout();
     navigate("/");
   };
-  // 🔌 Socket connect
+
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   useEffect(() => {
     socketRef.current = io("http://localhost:5000", {
       auth: { token: getToken() },
@@ -38,46 +42,46 @@ export default function Home() {
     });
 
     socketRef.current.on("private_message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-    socketRef.current.on("newMessage", (msg) => {
-  // Agar current chat nahi hai → notify
-  if (!selectedChat || msg.senderId !== selectedChat.id) {
-    toast.success(`💬 ${msg.senderName}: ${msg.text}`);
-  }
+      const currentChat = selectedChatRef.current;
+      if (!currentChat) return;
 
-  // Messages update
-  if (selectedChat && msg.senderId === selectedChat.id) {
-    setMessages((prev) => [...prev, msg]);
-  }
-});
+      const isForOpenChat =
+        msg.sender?.toString() === currentChat.id ||
+        msg.receiverId?.toString() === currentChat.id;
+
+      if (!isForOpenChat) return;
+
+      setMessages((prev) => {
+        const exists = prev.some(
+          (m) =>
+            m.text === msg.text &&
+            m.sender?.toString() === msg.sender?.toString()
+        );
+        if (exists) return prev;
+        return [...prev, msg];
+      });
+    });
+
     return () => socketRef.current.disconnect();
   }, []);
 
+  useEffect(() => {
+    const savedChats = localStorage.getItem("recentChats");
+    if (savedChats) setChats(JSON.parse(savedChats));
+0
+    const savedChat = localStorage.getItem("selectedChat");
+    if (savedChat) {
+      const chatUser = JSON.parse(savedChat);
+      setSelectedChat(chatUser);
 
- useEffect(() => {
-  // ✅ Restore sidebar
-  const savedChats = localStorage.getItem("recentChats");
-  if (savedChats) {
-    setChats(JSON.parse(savedChats));
-  }
+      fetch(`http://localhost:5000/messages/${chatUser.id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+        .then((res) => res.json())
+        .then((data) => setMessages(data));
+    }
+  }, []);
 
-  // ✅ Restore selected chat
-  const savedChat = localStorage.getItem("selectedChat");
-  if (savedChat) {
-    const chatUser = JSON.parse(savedChat);
-    setSelectedChat(chatUser);
-
-    fetch(`http://localhost:5000/messages/${chatUser.id}`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setMessages(data));
-  }
-}, []);
-  // 🔎 Search users
   useEffect(() => {
     if (!search.trim()) {
       setSearchResults([]);
@@ -86,9 +90,7 @@ export default function Home() {
 
     const t = setTimeout(() => {
       fetch(`http://localhost:5000/users/search?q=${search}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { Authorization: `Bearer ${getToken()}` },
       })
         .then((res) => res.json())
         .then((data) => setSearchResults(data));
@@ -97,25 +99,23 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // 📂 Open chat
   const openChat = (user) => {
     const chatUser = { id: user._id, name: user.name };
     setSelectedChat(chatUser);
-     localStorage.setItem("selectedChat", JSON.stringify(chatUser));
+    setMessages([]);
+
+    localStorage.setItem("selectedChat", JSON.stringify(chatUser));
+
     setChats((prev) => {
       const exists = prev.find((c) => c.id === user._id);
       if (exists) return prev;
-      const updated = exists ? prev : [chatUser, ...prev];
-
-    // ✅ Save sidebar chats
-    localStorage.setItem("recentChats", JSON.stringify(updated));
+      const updated = [chatUser, ...prev];
+      localStorage.setItem("recentChats", JSON.stringify(updated));
       return updated;
     });
 
     fetch(`http://localhost:5000/messages/${user._id}`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
     })
       .then((res) => res.json())
       .then((data) => setMessages(data));
@@ -126,9 +126,8 @@ export default function Home() {
 
   return (
     <div className="h-screen w-screen flex bg-gradient-to-br from-[#0b1020] via-[#1b1b3a] to-[#2e1065] text-white">
-      {/* Sidebar */}
       <div className="w-80 border-r border-white/10 p-4 flex flex-col">
-        <h2 className="text-xl font-bold mb-3">💬 Chat App</h2>
+        <h2 className="text-xl font-bold mb-3">💬 Connectify</h2>
 
         <input
           value={search}
@@ -156,8 +155,11 @@ export default function Home() {
             <div
               key={chat.id}
               onClick={() => openChat({ _id: chat.id, name: chat.name })}
-              className={`p-3 rounded-xl cursor-pointer 
-                ${selectedChat?.id === chat.id ? "bg-white/20" : "hover:bg-white/10"}`}
+              className={`p-3 rounded-xl cursor-pointer ${
+                selectedChat?.id === chat.id
+                  ? "bg-white/20"
+                  : "hover:bg-white/10"
+              }`}
             >
               {chat.name}
             </div>
@@ -172,7 +174,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 flex flex-col">
         {!selectedChat ? (
           <div className="flex-1 flex items-center justify-center text-white/60">
@@ -184,22 +185,23 @@ export default function Home() {
               Chat with {selectedChat.name}
             </div>
 
-            {/* 📨 Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {messages.map((msg, i) => {
                 const isMe = msg.sender?.toString() === myId;
 
                 return (
                   <div
-                    key={i}
-                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                    key={msg._id || i}
+                    className={`flex ${
+                      isMe ? "justify-end" : "justify-start"
+                    }`}
                   >
                     <div
-                      className={`px-4 py-2 rounded-2xl max-w-[70%] 
-                        ${isMe
+                      className={`px-4 py-2 rounded-2xl max-w-[70%] ${
+                        isMe
                           ? "bg-pink-500 text-white rounded-br-sm"
                           : "bg-white/20 text-white rounded-bl-sm"
-                        }`}
+                      }`}
                     >
                       {msg.text}
                     </div>
@@ -208,7 +210,6 @@ export default function Home() {
               })}
             </div>
 
-            {/* ✍️ Input */}
             <div className="p-4 border-t border-white/10 flex gap-2">
               <input
                 value={message}
@@ -219,6 +220,15 @@ export default function Home() {
               <button
                 onClick={() => {
                   if (!message || !selectedChat) return;
+
+                  const tempMsg = {
+                    _id: Date.now(),
+                    sender: myId,
+                    receiverId: selectedChat.id,
+                    text: message,
+                  };
+
+                  setMessages((prev) => [...prev, tempMsg]);
 
                   socketRef.current.emit("private_message", {
                     receiverId: selectedChat.id,

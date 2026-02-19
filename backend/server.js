@@ -54,7 +54,6 @@ io.use(async (socket, next) => {
 
 io.on("connect", (socket) => {
   console.log("User connected:", socket.id);
-
   socket.on("disconnect", async () => {
     await userModel.findByIdAndUpdate(socket.userId, {
       SocketId: ""
