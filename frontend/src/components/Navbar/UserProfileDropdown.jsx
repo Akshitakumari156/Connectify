@@ -25,15 +25,41 @@ const UserProfileDropdown = ({setShowDropDown}) => {
         setOpen(false);
         setShowDropDown(false);
     }
-    const logoutHandler = ()=>{
-       console.log("logout clicked");
+    const logoutHandler = (e) => {
+    // 1. Prevent any background clicks
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    console.log("Logout triggered successfully");
+
+    try {
+        // 2. Clear Redux State
         dispatch(removeToken());
         dispatch(setUserData(null));
+
+        // 3. Clear Storage
+        localStorage.clear(); // Using clear() ensures everything is wiped
+
+        // 4. Close UI Elements
         setOpen(false);
         setShowDropDown(false);
+
+        // 5. Feedback and Redirect
         toast.success("Logout Successfully");
-        navigate("/login");
+        
+        // We use a small timeout to ensure the UI state (Dialog) 
+        // cleans up before the page changes
+        setTimeout(() => {
+            navigate("/login");
+        }, 100);
+        
+    } catch (error) {
+        console.error("Logout error:", error);
+        toast.error("Something went wrong during logout");
     }
+};
   return (
     <div className='px-4 py-1 pb-3 flex flex-col gap-4'>
 
@@ -70,9 +96,12 @@ const UserProfileDropdown = ({setShowDropDown}) => {
             <p className='font-semibold text-[18px]'>Logout</p>
         </div>
 
-        <Dialog open={open} onClose={()=>{
-            setOpen(false)
-        }}>
+        <Dialog 
+  open={open} 
+  onClose={() => setOpen(false)}
+  disablePortal={false} // Ensures it moves to the top level of the DOM
+  sx={{ zIndex: 9999 }} // Forces it above mobile navbars
+>
           <DialogTitle sx={{fontWeight:700}}>Logout Confirmation</DialogTitle>
 
           <DialogContent>

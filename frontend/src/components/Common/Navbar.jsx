@@ -5,7 +5,10 @@ import { FaRegHeart, FaPlus, FaRegEnvelope, FaBars, FaTimes } from "react-icons/
 import { useSelector } from "react-redux";
 import { IoIosArrowDown } from "react-icons/io";
 import UserProfileDropdown from "../Navbar/UserProfileDropdown";
-
+import { useDispatch } from "react-redux";
+import { removeToken } from "../../redux/slices/auth";
+import { setUserData } from "../../redux/slices/userData";
+import toast from "react-hot-toast";
 const Navbar = () => {
   const { userData } = useSelector((state) => state.user);
   const { token } = useSelector((state) => state.auth);
@@ -17,7 +20,16 @@ const Navbar = () => {
   const naviagte = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
+  const dispatch = useDispatch();
 
+const handleLogout = () => {
+  dispatch(removeToken());
+  dispatch(setUserData(null));
+  localStorage.clear();
+  setIsMobileMenuOpen(false); // Close the sidebar
+  toast.success("Logout Successfully");
+  naviagte("/login");
+};
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -154,7 +166,12 @@ const Navbar = () => {
                 <Link to="/signup" className="w-full py-3 bg-yellow-400 text-gray-900 font-bold text-center rounded-lg">Sign Up</Link>
                </>
              ) : (
-                <button className="w-full py-3 bg-red-500/20 text-red-500 rounded-lg">Logout</button>
+                <button 
+  onClick={handleLogout}
+  className="w-full py-3 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all"
+>
+  Logout
+</button>
              )}
              <button 
               className="w-full py-3 bg-yellow-400 text-gray-900 font-bold rounded-lg flex items-center justify-center gap-2"
