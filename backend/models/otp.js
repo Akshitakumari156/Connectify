@@ -24,8 +24,13 @@ const sendOtp = async(email,otp)=>{
 }
 
 otpSchema.pre("save",async function(next){
-await sendOtp(this.email,this.otp);
-next();
+try {
+        await sendOtp(this.email, this.otp);
+        next();
+    } catch (error) {
+        console.error("Mail sending failed but continuing DB save:", error);
+        next(); // Mail fail hone par bhi next() call karein taaki request freeze na ho
+    }
 });
 
 module.exports = mongoose.model("OTP",otpSchema);
