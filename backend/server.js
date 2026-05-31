@@ -13,7 +13,10 @@ const { app, server } = require("./socket/socket");
 
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+    origin: "*", 
+    credentials: true
+}));
 app.use(express.json());
 
 app.use(fileUpload({
