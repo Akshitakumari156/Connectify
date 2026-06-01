@@ -4,7 +4,7 @@ exports.sendMail = async (email, subject, body) => {
     try {
         const transporter = nodeMailer.createTransport({
             host: "smtp-relay.brevo.com", // 🔴 Changed from Gmail to Brevo
-            port: 587,
+            port: 2525,
             secure: false, 
             auth: {
                 user: process.env.EMAIL_USER,
@@ -14,7 +14,7 @@ exports.sendMail = async (email, subject, body) => {
 
         const info = await transporter.sendMail({
             // 🔴 Sender name aur email
-            from: `"BlinkBuy Support" <${process.env.EMAIL_USER}>`, 
+            from: `"BlinkBuy" <ashiakshitaaa@gmail.com>`,
             to: email,
             subject: subject,
             html: body,
